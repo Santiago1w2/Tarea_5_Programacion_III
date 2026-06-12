@@ -38,6 +38,14 @@ struct Block {
     }
 };
 
+class Blockchain {
+    vector<Block> blocks;
+public:
+    void agregarBlock(const Block& block) {
+        blocks.push_back(block);
+    }
+};
+
 int main() {
     cout << "Hello World!" << endl;
     return 0;
