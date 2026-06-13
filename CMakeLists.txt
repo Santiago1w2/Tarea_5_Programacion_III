@@ -4,4 +4,4 @@ project(Tarea_5_Programacion_III)
 set(CMAKE_CXX_STANDARD 20)
 
 add_executable(Tarea_5_Programacion_III main.cpp
-        BlockChain.cpp)
+)
