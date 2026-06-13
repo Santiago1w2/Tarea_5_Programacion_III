@@ -11,7 +11,6 @@ struct Voto{
     Voto(string id, string opt) : voter_id(id), option(opt) {}
 };
 
-
 struct Block {
     int index;
     string previous_hash;
@@ -38,9 +37,46 @@ struct Block {
     }
 };
 
+class Blockchain {
+    vector<Block> blocks;
+public:
+    void agregarBlock(const Block& block) {
+        blocks.push_back(block);
+    }
+
+    void mineBlock(int dificultad) {
+        if (blocks.empty()) {
+            return;
+        }
+        Block& block = blocks.back();
+        string objetivo;
+        for (int i = 0; i < dificultad; i++) {
+            objetivo += "0";
+        }
+        string hash_actual=block.calculateHash();
+        while (hash_actual.substr(0,dificultad)!= objetivo) {
+            block.nonce++;
+            hash_actual=block.calculateHash();
+        }
+        block.current_hash=hash_actual;
+    }
+
+    bool isChainValid(){
+        for (int i=1; i<blocks.size(); i++) {
+            const Block& actual = blocks[i];
+            const Block& anterior = blocks[i-1];
+            if (actual.previous_hash!=anterior.current_hash) {
+                return false;
+            }
+            if (actual.current_hash!=actual.calculateHash()) {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
 int main() {
-//hola santi saodosajdoisjaoij come keke
-    //no me digas vago p me pongo tite
     cout << "Hello World!" << endl;
     return 0;
 }
