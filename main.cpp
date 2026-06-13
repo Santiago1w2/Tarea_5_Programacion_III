@@ -64,7 +64,7 @@ public:
 
     Block crearBlock(vector<Voto> votos) {
         Block new_block(blocks.size(),blocks.back().current_hash,votos);
-        new_block.mineBlock(2);
+        new_block.mineBlock(4);
         blocks.push_back(new_block);
         return new_block;
     }
@@ -89,20 +89,17 @@ public:
         }
         return true;
     }
-    void eliminar_ultimo() {
-        blocks.pop_back();
-    }
 
     void mostrar() const {
         for (auto block : blocks) {
-            cout << "---------------Block " << block.index + 1 <<"-------" << endl;
+            cout << "----------------Block " << block.index + 1 <<"-----------" << endl;
             cout << "#Current_Hash: " << block.current_hash << endl;
             cout << "#Votos: " << block.current_hash << endl;
             for (auto v:block.votos) {
-                cout << "- " << v.voter_id << "== "<<v.option <<" ==" << endl;
+                cout << "- " << v.voter_id << " : "<<v.option <<"." << endl;
             }
             cout << "#Previus_hash: " << block.previous_hash << endl;
-            cout << "---------------------------------------------" << endl;
+            cout << "------------------------------------------------------" << endl;
         }
     }
 };
@@ -110,6 +107,7 @@ public:
 class MesaElectoralObserver {
 public:
     virtual void update(const Block& block_) = 0;
+    virtual void mostrar_mesa()= 0;
 };
 
 class MesaElectoral: public MesaElectoralObserver {
@@ -120,14 +118,18 @@ public:
         MesaElectoral(string nom): nombre(nom) {
         }
     void update(const Block& block_) override {
-
             if (blockchain_.agregarBlock(block_)) {
-                cout << "se agrego correcatmente el bolock " << block_.index << endl;
+                cout << nombre <<": se agrego correcatmente el bolock " << block_.index << ", todo correcto :)"<< endl;
             } else {
-                cout << " no se agrego correcatmente el bolock " << block_.index << endl;
+                cout << nombre <<": no se agrego correcatmente el bolock " << block_.index << ", algo fue modificado!" <<endl;
             }
     }
-    Block registrarVotos(vector<Voto> votos) {
+    void mostrar_mesa() override {
+            cout << "============================= Mesa: " << nombre << "================" << endl;
+            blockchain_.mostrar();
+        }
+    Block registrarVotos(vector<Voto> votos){
+            cout << nombre<< " crea el Block y agrega el Block, ";
             return blockchain_.crearBlock(votos);
         }
 };
@@ -140,9 +142,21 @@ public:
     void attach(MesaElectoralObserver* mesa) {
         observadores.push_back(mesa);
     }
-    void notificarNuevoBloque(const Block& block_) {
-        for (auto& obs: observadores) {
-            obs->update(block_);
+    void notificarNuevoBloque(const Block& block_, MesaElectoralObserver* origen) {
+        cout << "Notificados------------------------------------------------ " << endl;
+
+        for (auto& obs : observadores) {
+            if (obs != origen) {
+                obs->update(block_);
+            }
+        }
+        cout << "--------------------------------------------------------" << endl;
+    }
+
+    void mostrar_central() {
+        cout << "------------------------------Centro Electoral------------------------------" << endl;
+        for (auto op: observadores) {
+            op->mostrar_mesa();
         }
     }
 };
@@ -168,12 +182,15 @@ int main() {
     Centro1->attach(Mesa3);
     Block b1 = Mesa1->registrarVotos(votos1);
 
-    Centro1->notificarNuevoBloque(b1);
+    Centro1->notificarNuevoBloque(b1, Mesa1);
 
     Block b2 = Mesa1->registrarVotos(votos2);
 
-    Centro1->notificarNuevoBloque(b2);
+    //b2.votos[0].option="MORALES";
 
+    Centro1->notificarNuevoBloque(b2, Mesa1);
+
+    Centro1->mostrar_central();
     delete Mesa1;
     delete Mesa2;
     delete Mesa3;
