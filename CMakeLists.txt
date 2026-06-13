@@ -3,4 +3,8 @@ project(Tarea_5_Programacion_III)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(Tarea_5_Programacion_III main.cpp)
+add_executable(Tarea_5_Programacion_III main.cpp
+        Bloque.cpp
+        Bloque.h
+        BlockChain.cpp
+        BlockChain.h)
