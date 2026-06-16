@@ -7,7 +7,7 @@ using namespace std;
 struct Voto{
     string voter_id;
     string option;
-    Voto(string id, string opt) : voter_id(id), option(opt) {}
+    Voto(const string& id, const string& opt) : voter_id(id), option(opt) {}
 };
 
 struct Block {
@@ -17,38 +17,32 @@ struct Block {
     int nonce;
     string current_hash;
 
-    Block(int idx, string prev_hash, vector<Voto> lista_votos)
+    Block(int idx, const string& prev_hash, const vector<Voto>& lista_votos)
         : index(idx), previous_hash(prev_hash), votos(lista_votos), nonce(0) {
         current_hash = calculateHash();
     }
 
     string calculateHash() const {
-        string data_to_hash = to_string(index)
-                            + previous_hash
-                            + to_string(nonce);
+        // Uso de stringstream para simular una huella segura y evitar colisiones
+        stringstream ss_data;
+        ss_data << index << previous_hash << nonce;
 
         for (const auto& voto : votos) {
-            data_to_hash += voto.voter_id + voto.option;
+            ss_data << "|" << voto.voter_id << ":" << voto.option;
         }
 
+        string base_data = ss_data.str();
+        stringstream hash_result;
         hash<string> hasher;
-        size_t hashed_value = hasher(data_to_hash);
 
-        stringstream ss;
-        ss << hex << setw(16) << setfill('0') << hashed_value;
+        // Simulamos un hash más largo (64 caracteres) concatenando pasadas de std::hash
+        for (int i = 0; i < 4; ++i) {
+            string data_chunk = base_data + to_string(i);
+            size_t hashed_chunk = hasher(data_chunk);
+            hash_result << hex << setw(16) << setfill('0') << hashed_chunk;
+        }
 
-        return ss.str();
-    }
-    void mineBlock(int dificultad) {
-        string objetivo;
-        for (int i = 0; i < dificultad; i++) {
-            objetivo+= "0";
-        }
-        while (current_hash.substr(0,dificultad)!= objetivo) {
-            ++nonce;
-            current_hash=calculateHash();
-        }
-        cout << "Block minado: " << index<< endl;
+        return hash_result.str();
     }
 };
 
@@ -62,10 +56,20 @@ public:
         blocks.push_back(p_bock);
     }
 
+    void mineBlock(int dificultad, Block& blockToMine) {
+        string objetivo(dificultad, '0');
+        while (blockToMine.current_hash.compare(0, dificultad, objetivo) != 0) {
+            blockToMine.nonce++;
+            blockToMine.current_hash = blockToMine.calculateHash();
+        }
+        cout << "Block minado: " << blockToMine.index << endl;
+    }
 
-    Block crearBlock(vector<Voto> votos) {
-        Block new_block(blocks.size(),blocks.back().current_hash,votos);
-        new_block.mineBlock(4);
+    Block crearBlock(const vector<Voto>& votos) {
+        Block new_block(blocks.size(), blocks.back().current_hash, votos);
+
+        mineBlock(4, new_block);
+
         blocks.push_back(new_block);
         return new_block;
     }
@@ -77,7 +81,7 @@ public:
         }
         return false;
     }
-    bool isChainValid(){
+    bool isChainValid() const {
         for (int i=1; i<blocks.size(); i++) {
             const Block& actual = blocks[i];
             const Block& anterior = blocks[i-1];
@@ -92,11 +96,11 @@ public:
     }
 
     void mostrar() const {
-        for (auto block : blocks) {
+        for (const auto& block : blocks){
             cout << "----------------Block " << block.index + 1 <<"-----------" << endl;
             cout << "#Current_Hash: " << block.current_hash << endl;
             cout << "#Votos: " << endl;
-            for (auto v:block.votos) {
+            for (const auto& v : block.votos) {
                 cout << "- " << v.voter_id << " : "<<v.option <<"." << endl;
             }
             cout << "#Previus_hash: " << block.previous_hash << endl;
@@ -107,6 +111,7 @@ public:
 
 class MesaElectoralObserver {
 public:
+    virtual ~MesaElectoralObserver() = default;
     virtual void update(const Block& block_) = 0;
     virtual void mostrar_mesa()= 0;
 };
@@ -116,6 +121,7 @@ private:
     Blockchain blockchain_;
     string nombre;
 public:
+
         MesaElectoral(string nom): nombre(nom) {
         }
     void update(const Block& block_) override {
@@ -132,6 +138,15 @@ public:
     Block registrarVotos(vector<Voto> votos){
             cout << nombre<< " crea el Block y agrega el Block, ";
             return blockchain_.crearBlock(votos);
+        }
+    void auditarMesa() const {
+            cout << "\n--- AUDITORIA DE " << nombre << " ---" << endl;
+            if (blockchain_.isChainValid()) {
+                cout << "[ESTADO: SEGURO] Los hashes coinciden. Ningun voto historico ha sido alterado." << endl;
+            } else {
+                cout << "[ESTADO: PELIGRO] ¡Se detecto corrupcion en los datos! La cadena esta ROTA." << endl;
+            }
+            cout << "---------------------------------\n" << endl;
         }
 };
 
@@ -152,6 +167,7 @@ public:
             }
         }
         cout << "--------------------------------------------------------" << endl;
+
     }
 
     void mostrar_central() {
@@ -164,96 +180,52 @@ public:
 
 
 int main() {
-    vector<Voto> votos1;
-    vector<Voto> votos2;
-    vector<Voto> votos3;
-    Voto voto1("123", "Keiko");
-    Voto voto2("234", "JP");
-    Voto voto3("345", "Keiko");
-    Voto voto4("456", "JP");
-    Voto voto5("567", "Keiko");
-    Voto voto6("678", "JP");
-    Voto voto7("789", "Keiko");
-    Voto voto8("890", "JP");
-    Voto voto9("901", "Keiko");
-    Voto voto10("102", "JP");
+    vector<Voto> votos1 = {
+        {"123", "Keiko"}, {"234", "JP"}, {"345", "Keiko"}, {"456", "JP"},
+        {"567", "Keiko"}, {"678", "JP"}, {"789", "Keiko"}, {"901", "Keiko"}, {"102", "JP"}
+    };
 
-    Voto voto11("113", "Keiko");
-    Voto voto12("124", "JP");
-    Voto voto13("135", "Keiko");
-    Voto voto14("146", "JP");
-    Voto voto15("157", "Keiko");
-    Voto voto16("168", "JP");
-    Voto voto17("179", "Keiko");
-    Voto voto18("180", "JP");
-    Voto voto19("191", "Keiko");
-    Voto voto20("202", "JP");
+    vector<Voto> votos2 = {
+        {"113", "Keiko"}, {"124", "JP"}, {"135", "Keiko"}, {"146", "JP"},
+        {"157", "Keiko"}, {"168", "JP"}, {"179", "Keiko"}, {"180", "JP"},
+        {"191", "Keiko"}, {"202", "JP"}
+    };
 
-    Voto voto21("213", "Keiko");
-    Voto voto22("224", "JP");
-    Voto voto23("235", "Keiko");
-    Voto voto24("246", "JP");
-    Voto voto25("257", "Keiko");
-    Voto voto26("268", "JP");
-    Voto voto27("279", "Keiko");
-    Voto voto28("280", "JP");
-    Voto voto29("291", "Keiko");
-    Voto voto30("302", "JP");
+    vector<Voto> votos3 = {
+        {"213", "Keiko"}, {"224", "JP"}, {"235", "Keiko"}, {"246", "JP"},
+        {"257", "Keiko"}, {"268", "JP"}, {"279", "Keiko"}, {"280", "JP"},
+        {"291", "Keiko"}, {"302", "JP"}
+    };
 
-    votos1.push_back(voto1);
-    votos1.push_back(voto2);
-    votos1.push_back(voto3);
-    votos1.push_back(voto4);
-    votos1.push_back(voto5);
-    votos1.push_back(voto6);
-    votos1.push_back(voto7);
-    votos1.push_back(voto9);
-    votos1.push_back(voto10);
-
-    votos2.push_back(voto11);
-    votos2.push_back(voto12);
-    votos2.push_back(voto13);
-    votos2.push_back(voto14);
-    votos2.push_back(voto15);
-    votos2.push_back(voto16);
-    votos2.push_back(voto17);
-    votos2.push_back(voto18);
-    votos2.push_back(voto19);
-    votos2.push_back(voto20);
-
-    votos3.push_back(voto21);
-    votos3.push_back(voto22);
-    votos3.push_back(voto23);
-    votos3.push_back(voto24);
-    votos3.push_back(voto25);
-    votos3.push_back(voto26);
-    votos3.push_back(voto27);
-    votos3.push_back(voto28);
-    votos3.push_back(voto29);
-    votos3.push_back(voto30);
     auto* Centro1 = new CentroElectoralSubject();
     auto* Mesa1 = new MesaElectoral("Mesa1");
     auto* Mesa2 = new MesaElectoral("Mesa2");
     auto* Mesa3 = new MesaElectoral("Mesa3");
+
     Centro1->attach(Mesa1);
     Centro1->attach(Mesa2);
     Centro1->attach(Mesa3);
+
     Block b1 = Mesa1->registrarVotos(votos1);
     Centro1->notificarNuevoBloque(b1, Mesa1);
+    Mesa1->auditarMesa();
 
     Block b2 = Mesa2->registrarVotos(votos2);
     Centro1->notificarNuevoBloque(b2, Mesa2);
+    Mesa2->auditarMesa();
 
     Block b3 = Mesa3->registrarVotos(votos3);
-    b3.votos[0].option = "JP";
+    b3.votos[0].option = "JP"; // Intento de fraude
     Centro1->notificarNuevoBloque(b3, Mesa3);
-
+    Mesa3->auditarMesa();
 
 
     Centro1->mostrar_central();
+
     delete Mesa1;
     delete Mesa2;
     delete Mesa3;
     delete Centro1;
+
     return 0;
 }
